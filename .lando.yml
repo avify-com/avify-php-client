@@ -1,0 +1,4 @@
+name: avify-php-client
+recipe: lamp
+config:
+  webroot: .

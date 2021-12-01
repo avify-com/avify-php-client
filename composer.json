@@ -1,0 +1,13 @@
+{
+    "name": "avify/avify-php-client",
+    "description": "Avify PHP Client Library",
+    "authors": [
+        {
+            "name": "Juan Prendas",
+            "email": "jprendas@bananacode.co"
+        }
+    ],
+    "require": {
+        "guzzlehttp/guzzle": "^7.4"
+    }
+}
