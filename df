@@ -1,0 +1,23 @@
+[33mcommit 0c65f2d781629ee7f1b6bbb465d8320492a03810[m[33m ([m[1;36mHEAD -> [m[1;32mCU-1r16b7u[m[33m, [m[1;31morigin/CU-1r16b7u[m[33m)[m
+Author: Juan Prendas <jprendas@bananacode.co>
+Date:   Mon Dec 6 09:59:42 2021 -0600
+
+    get public key function added
+
+[33mcommit e16291d9078ebe6e658bdf85d6d159022732c3ba[m
+Author: Juan Prendas <jprendas@bananacode.co>
+Date:   Wed Dec 1 21:04:43 2021 -0600
+
+    Autoload and namespace added
+
+[33mcommit 2fa1431acbeea52a19b26b0b029c9482e01c6723[m
+Author: Juan Prendas <jprendas@bananacode.co>
+Date:   Tue Nov 30 18:45:21 2021 -0600
+
+    initial structure
+
+[33mcommit 9f8fbed5eca63c9b29ff5076bbd473fb58e055d4[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/dev[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m
+Author: Alexis Valenciano <avalenciano@bananacode.co>
+Date:   Mon Nov 22 11:34:56 2021 -0600
+
+    Initial commit
