@@ -2,6 +2,9 @@
 declare(strict_types = 1);
 namespace App;
 
+
+use App\Checkout;
+
 Class Avify {
 
     public $prod_base_url;
@@ -59,11 +62,9 @@ Class Avify {
 
         $curl = curl_init();
         $headers = [
-            'avify-auth: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEyLCJhcGlJZCI6MTgsInR5cGUiOiJBUEkiLCJpYXQiOjE2Mzg0Njc0OTB9.L2-G5UyDgLY_5hKSwnWV6kyJBzbnz5D-hVAkNi1U4Hv0e102sYZYnu4Q755K9y1dlBr1SRyHOjOUdEido_dxUEMu_oFYl57i2YaHN68RtZqV5KtbbjAtl3hnityD6PeejP_j4sQP6yKd6ObiEYZSSY_-e7hlWPZcOtK1Q47uwAPUvow6KDceB3B8bsoiudCiaD956-6TVenafry2oMzkkoCDmpGjQg2Hh0g76l86FAsn2DB0YhVd-XY0YhoffsnWVN7OuCfaJbBD1FBvI7tgTT6GmIjkqqKvW6LFsjvchRkWRy6B5p7yKmrCdu6ETrLePU4aePJ8_1d4qZtnZPWfY1csqA6FgYk2G5bIFUcnbQeomaJXQFWOe617ISxIvvo_Yq5T2tEqUpyq5mTw1KBeXu6Cuh7xjugmqz9Hgeb-_KofKHXlJd_2GNs929pqlQLAOHUEScNJhNCvzy0qzomQJIb9-2mzwCF99VlpAriCRjtCIvW5FdHPv0918we-ERh6KhrFMbuEjr9IyHV6G90nIMJJwa5O3dFhRjugN0EykRjNyxZLz_6kg_uEFoEP0SsHu5JQJCoUJlYXDjrmluN1xfPeiQdfUTp-2jCaJmzEMM95eq9zS5tD296pybemYbmH8nJyE-nO-YcZzWyYmVyWO-nhFZwYKGK-wyyDj0-JJQc
-            '
+            'api-key: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEyLCJhcGlJZCI6MTgsInR5cGUiOiJBUEkiLCJpYXQiOjE2Mzg0Njc0OTB9.L2-G5UyDgLY_5hKSwnWV6kyJBzbnz5D-hVAkNi1U4Hv0e102sYZYnu4Q755K9y1dlBr1SRyHOjOUdEido_dxUEMu_oFYl57i2YaHN68RtZqV5KtbbjAtl3hnityD6PeejP_j4sQP6yKd6ObiEYZSSY_-e7hlWPZcOtK1Q47uwAPUvow6KDceB3B8bsoiudCiaD956-6TVenafry2oMzkkoCDmpGjQg2Hh0g76l86FAsn2DB0YhVd-XY0YhoffsnWVN7OuCfaJbBD1FBvI7tgTT6GmIjkqqKvW6LFsjvchRkWRy6B5p7yKmrCdu6ETrLePU4aePJ8_1d4qZtnZPWfY1csqA6FgYk2G5bIFUcnbQeomaJXQFWOe617ISxIvvo_Yq5T2tEqUpyq5mTw1KBeXu6Cuh7xjugmqz9Hgeb-_KofKHXlJd_2GNs929pqlQLAOHUEScNJhNCvzy0qzomQJIb9-2mzwCF99VlpAriCRjtCIvW5FdHPv0918we-ERh6KhrFMbuEjr9IyHV6G90nIMJJwa5O3dFhRjugN0EykRjNyxZLz_6kg_uEFoEP0SsHu5JQJCoUJlYXDjrmluN1xfPeiQdfUTp-2jCaJmzEMM95eq9zS5tD296pybemYbmH8nJyE-nO-YcZzWyYmVyWO-nhFZwYKGK-wyyDj0-JJQc'
         ];
         $base = ($mode == 'sandbox') ? 'https://sandboxapi.avify.co' : 'https://api.avify.co' ;
-        echo $base;
         curl_setopt($curl, CURLOPT_URL, "{$base}/api/{$version}/gateway/key");
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
@@ -81,10 +82,30 @@ Class Avify {
     public function encrypt(string $key, string $data){
         $encryption_key = base64_decode($key);
         $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
-        $encrypted = openssl_encrypt($data, 'aes-256-cbc', $encryption_key, 0, $iv);
+        $encrypted = openssl_encrypt($data, 'aes-256-cbc', $key, 0, $iv);
         return base64_encode($encrypted .'::'.$iv);
     }
+    public function checkout(Checkout $checkout){
+        $key = $this->get_key('sandbox', 'v1');
+        $encrypted_card = array('card' => $this->encrypt($key, json_encode($checkout)) );
+        print_r(json_encode($encrypted_card));
+        $curl = curl_init();
+        $headers = [
+            'api-key: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEyLCJhcGlJZCI6MTgsInR5cGUiOiJBUEkiLCJpYXQiOjE2Mzg0Njc0OTB9.L2-G5UyDgLY_5hKSwnWV6kyJBzbnz5D-hVAkNi1U4Hv0e102sYZYnu4Q755K9y1dlBr1SRyHOjOUdEido_dxUEMu_oFYl57i2YaHN68RtZqV5KtbbjAtl3hnityD6PeejP_j4sQP6yKd6ObiEYZSSY_-e7hlWPZcOtK1Q47uwAPUvow6KDceB3B8bsoiudCiaD956-6TVenafry2oMzkkoCDmpGjQg2Hh0g76l86FAsn2DB0YhVd-XY0YhoffsnWVN7OuCfaJbBD1FBvI7tgTT6GmIjkqqKvW6LFsjvchRkWRy6B5p7yKmrCdu6ETrLePU4aePJ8_1d4qZtnZPWfY1csqA6FgYk2G5bIFUcnbQeomaJXQFWOe617ISxIvvo_Yq5T2tEqUpyq5mTw1KBeXu6Cuh7xjugmqz9Hgeb-_KofKHXlJd_2GNs929pqlQLAOHUEScNJhNCvzy0qzomQJIb9-2mzwCF99VlpAriCRjtCIvW5FdHPv0918we-ERh6KhrFMbuEjr9IyHV6G90nIMJJwa5O3dFhRjugN0EykRjNyxZLz_6kg_uEFoEP0SsHu5JQJCoUJlYXDjrmluN1xfPeiQdfUTp-2jCaJmzEMM95eq9zS5tD296pybemYbmH8nJyE-nO-YcZzWyYmVyWO-nhFZwYKGK-wyyDj0-JJQc'
+        ];
+        curl_setopt($curl, CURLOPT_URL, "https://sandboxapi.avify.co/api/v1/gateway/checkout");
+        curl_setopt($curl, CURLOPT_POST, 1);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $encrypted_card);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
 
+        $response = curl_exec($curl);
+        if (curl_errno($curl)) {
+            print "Checkout Error: " . curl_error($curl);
+            exit();
+        }
+        return $response;
+        curl_close($curl);
+    }
     
 }
 
