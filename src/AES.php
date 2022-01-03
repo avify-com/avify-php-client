@@ -101,44 +101,75 @@ class AES
      * @param string $passphrase a passphrase/password.
      * @return string|false encrypted data: iv + ciphertext or `false` on error.
      */
-    function encrypt($plaintext)
+    function encryptKey($plaintext)
     {
         $key = $this->get_key('sandbox', 'v1');
         openssl_public_encrypt($plaintext, $encSymKey, $key);
         return base64_encode($encSymKey);
     }
 
-    public function checkout(Card $card)
+    /**
+     * Encrypts data with the supplied passphrase, using AES-256-GCM and PBKDF2-SHA256.
+     * 
+     * @param string $plaintext the plaintext data.
+     * @param string $passphrase a passphrase/password.
+     * @return string|false encrypted data: salt + nonce + ciphertext + tag or `false` on error.
+     */
+    function encrypt(string $plaintext, string $passphrase)
     {
-        $encryptedCard = $this->encrypt(json_encode($card));
+        $salt = openssl_random_pseudo_bytes(16);
+        $nonce = openssl_random_pseudo_bytes(12);
+        $key = hash_pbkdf2("sha256", $passphrase, $salt, 40000, 32, true);
+        $ciphertext = openssl_encrypt($plaintext, 'aes-256-gcm', $key, 1, $nonce, $tag);
 
-        $curl = curl_init();        
+        return base64_encode($salt . $nonce . $ciphertext . $tag);
+    }
+
+    /**
+     * Decrypts data with the supplied passphrase, using AES-256-GCM and PBKDF2-SHA256.
+     * 
+     * @param string $ciphertext encrypted data.
+     * @param string $passphrase a passphrase/password.
+     * @return string|false plaintext data or `false` on error.
+     */
+    function decrypt(string $ciphertext, string $passphrase)
+    {
+        $input = base64_decode($ciphertext);
+        $salt = substr($input, 0, 16);
+        $nonce = substr($input, 16, 12);
+        $ciphertext = substr($input, 28, -16);
+        $tag = substr($input, -16);
+        $key = hash_pbkdf2("sha256", $passphrase, $salt, 40000, 32, true);
+
+        return openssl_decrypt($ciphertext, 'aes-256-gcm', $key, 1, $nonce, $tag);
+    }
+
+    public function checkout($card)
+    {
+        // This passphrase is used for testing purposes only.
+        // The key will be part of the request.
+        // TODO: remove this randomPassphrase.
+        $randomPassphrase = base64_encode(openssl_random_pseudo_bytes(16));
+        $encryptedCard = $this->encrypt(json_encode($card), $randomPassphrase);
+
+        $curl = curl_init();
         $headers =  array("api-key: {$_ENV['API_KEY']}", 'Content-Type: application/json');
 
+        $encryptedKey = $this->encryptKey($randomPassphrase);
+        $json = json_encode(array(
+            'storeId' => 25, // TODO: remove this raw ID.
+            'data' => $encryptedCard,
+            'key' => $encryptedKey
+        ));
 
-        // $aes = $this->encrypt( json_encode($card));
-        // $aesdec = $this->decrypt( $aes, $key);
-
-        // $aes = $this->encrypt("Hello World!", $key);
-        // $aesdec = $this->decrypt( $aes, $key);
-
-        // echo 'Card: \n';
-        // var_dump($card);
-        // echo 'AES: ' . $encryptedCard . '\n';
-        // echo 'AES DEC: ' . $aesdec . '\n';
-
-        
-        $json = json_encode(array('card' => $encryptedCard));
-        
-        echo '\JSON: ' . $json . '\n';
-        
+        // echo '\JSON: ' . $json . '\n';
 
         curl_setopt($curl, CURLOPT_URL, "https://sandboxapi.avify.co/api/v1/integrations/payments/checkout");
         curl_setopt($curl, CURLOPT_POST, 1);
         curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $json);
         # Return response instead of printing.
-        curl_setopt( $curl, CURLOPT_RETURNTRANSFER, true );
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 
         $response = curl_exec($curl);
         if (curl_errno($curl)) {
@@ -147,8 +178,5 @@ class AES
         }
         return $response;
         curl_close($curl);
-
-        // $postValue = json_encode(array('card' => $encryptedCard));
-        // return $postValue;
     }
 }
