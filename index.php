@@ -6,7 +6,7 @@ require __DIR__ . '/vendor/autoload.php';
 
 use App\Avify;
 
-$test = new Avify('sandbox');
+$test = new Avify('sandbox', 'v1');
 
 $arr = [
     "amount" => 500, //required

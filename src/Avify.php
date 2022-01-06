@@ -7,6 +7,7 @@ namespace App;
 use App\Utils\Curl;
 use App\Utils\Crypt;
 use Dotenv\Dotenv;
+use App\Utils\Json;
 
 $dotenv = Dotenv::createImmutable(dirname(__DIR__, 1), '.env');
 $dotenv->load();
@@ -15,12 +16,14 @@ class Avify
     private $baseURL;
     private $mode;
     private $publicKey;
+    private $prodBaseUrl = 'https://api.avify.co';
+    private $sandboxBaseUrl = 'https://sandboxapi.avify.co';
 
-    public function __construct(string $mode)
+    public function __construct(string $mode, string $version)
     {
-        $this->baseURL = $mode == 'sandbox' ? 'https://sandboxapi.avify.co' : 'https://api.avify.co';
+        $this->baseURL = ($mode == 'sandbox' ? $this->sandboxBaseUrl : $this->prodBaseUrl) . '/api/' . $version;
         $this->mode = $mode;
-        $this->publicKey = $this->getPaymentsPubliKey();
+        $this->publicKey = $this->getPaymentsPublicKey();
     }
 
     function setBaseURL(string $baseURL)
@@ -53,59 +56,36 @@ class Avify
         return $this->publicKey;
     }
 
-    function getPaymentsPubliKey(string $mode = 'sandbox', string $version = 'v1')
+    public function getPaymentsPublicKey()
     {
         $headers =  array("api-key: {$_ENV['API_KEY']}");
-        $baseURL = $mode == 'sandbox' ? 'https://sandboxapi.avify.co' : 'https://api.avify.co';
-        $url = "{$baseURL}/api/{$version}/integrations/payments/key";
+        $url = "{$this->baseURL}/integrations/payments/key";
         $response = Curl::get($url, $headers);
-        return $response['key'];
+        $data = $response['data'];
+        $key = $data && array_key_exists('key', $data) ? $data['key'] : '';
+        return $key;
     }
 
-    public function checkout(array $card, string $mode = 'sandbox', string $version = 'v1')
+    public function checkout(array $card)
     {
-        // This passphrase is used for testing purposes only.
-        // The key will be part of the request.
-        // TODO: remove this randomPassphrase.
-        $randomPassphrase = base64_encode(openssl_random_pseudo_bytes(16));
-        $encryptedCard = Crypt::encrypt(json_encode($card), $randomPassphrase);
+        try {
+            $randomPassphrase = base64_encode(openssl_random_pseudo_bytes(16));
+            $encryptedCard = Crypt::encrypt(json_encode($card), $randomPassphrase);
 
-        $headers =  array("api-key: {$_ENV['API_KEY']}", 'Content-Type: application/json');
-        $baseURL = $mode == 'sandbox' ? 'https://sandboxapi.avify.co' : 'https://api.avify.co';
-        $url = "{$baseURL}/api/{$version}/integrations/payments/checkout";
+            $headers =  array("api-key: {$_ENV['API_KEY']}", 'Content-Type: application/json');
+            $url = "{$this->baseURL}/integrations/payments/checkout";
 
-        $encryptedKey = Crypt::encryptWithPublicKey($randomPassphrase, $this->publicKey);
-        $json = json_encode(array(
-            'storeId' => 25, // TODO: remove this raw ID.
-            'data' => $encryptedCard,
-            'key' => $encryptedKey
-        ));
+            $encryptedKey = Crypt::encryptWithPublicKey($randomPassphrase, $this->getPublicKey());
+            $json = json_encode(array(
+                'storeId' => 25, // TODO: remove this raw ID.
+                'data' => $encryptedCard,
+                'key' => $encryptedKey
+            ));
 
-        $response = Curl::post($url, $headers, $json);
-        $message = $this->getFormattedCheckoutResponse($response);
-        return $message;
-    }
-
-    private function getFormattedCheckoutResponse($response)
-    {
-        if ($response) {
-            $status = $response['status'];
-            $message = [
-                'success' => $status === 200,
-                'httpCode' => $status
-            ];
-
-            if ($status === 200) {
-                $paymentInfo = $response['payment'];
-                $message['data'] = $paymentInfo;
-            } else {
-                $error = $response['error'];
-                $message['error'] = [
-                    'message' => $error['displayMessage'],
-                    'code' => $error['code'],
-                ];
-            }
-            return $message;
+            $response = Curl::post($url, $headers, $json);
+            return $response;
+        } catch (\Throwable $th) {
+            return Json::formatJSONResponse(false, 400, $th->getMessage(), $th->getCode());
         }
     }
 }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Utils;
 
+use App\Utils\Json;
+
 class Curl
 {
     public static function get(string $url, array $headers = null)
@@ -31,23 +33,18 @@ class Curl
 
         $curlResponse = curl_exec($curlHandle);
         $httpCode = curl_getinfo($curlHandle, CURLINFO_HTTP_CODE);
-        $finalResponse = [];
 
-        if ($curlResponse === false) {
-            $finalResponse = [
-                'error' => [
-                    'message' => curl_error($curlHandle),
-                    'code' => curl_errno($curlHandle)
-                ],
-                'success' => false,
-                'httpCode' => $httpCode
-            ];
-        } else if ($curlResponse === true) {
-            // Worked, but no data...
-            $finalResponse = null;
+        $finalResponse = [];
+        $message = '';
+        $errorCode = 0;
+
+        if (curl_errno($curlHandle)) {
+            $message = curl_error($curlHandle);
         } else {
-            $finalResponse = json_decode($curlResponse, true);
+            $errorCode = curl_errno($curlHandle);
+            $message = $curlResponse;
         }
+        $finalResponse = Json::formatJSONResponse($httpCode < 400, $httpCode, $message, $errorCode);
 
         return $finalResponse;
     }
