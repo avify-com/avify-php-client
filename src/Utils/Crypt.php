@@ -4,17 +4,16 @@ declare(strict_types=1);
 
 namespace App\Utils;
 
-class Crypt
-{
+class Crypt {
     /**
      * Encrypts data with the supplied passphrase, using AES-256-CTR.
      * 
      * @param string $plaintext the plaintext data.
      * @param string $passphrase a passphrase/password.
+     * 
      * @return string|false encrypted data: iv + ciphertext or `false` on error.
      */
-    public static function encryptWithPublicKey(string $plaintext, string $passphrase)
-    {
+    public static function encrypt_aes_256_ctr(string $plaintext, string $passphrase) {
         openssl_public_encrypt($plaintext, $encSymKey, $passphrase);
         return base64_encode($encSymKey);
     }
@@ -24,10 +23,10 @@ class Crypt
      * 
      * @param string $plaintext the plaintext data.
      * @param string $passphrase a passphrase/password.
+     * 
      * @return string|false encrypted data: salt + nonce + ciphertext + tag or `false` on error.
      */
-    public static function encrypt(string $plaintext, string $passphrase)
-    {
+    public static function encrypt_aes_256_gcm(string $plaintext, string $passphrase) {
         $salt = openssl_random_pseudo_bytes(16);
         $nonce = openssl_random_pseudo_bytes(12);
         $key = hash_pbkdf2("sha256", $passphrase, $salt, 40000, 32, true);
@@ -43,8 +42,7 @@ class Crypt
      * @param string $passphrase a passphrase/password.
      * @return string|false plaintext data or `false` on error.
      */
-    public static function decrypt(string $ciphertext, string $passphrase)
-    {
+    public static function decrypt_aes_256_gcm(string $ciphertext, string $passphrase) {
         $input = base64_decode($ciphertext);
         $salt = substr($input, 0, 16);
         $nonce = substr($input, 16, 12);

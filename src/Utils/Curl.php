@@ -6,46 +6,73 @@ namespace App\Utils;
 
 use App\Utils\Json;
 
-class Curl
-{
-    public static function get(string $url, array $headers = null)
-    {
-        return self::httpRequest($url, $headers);
+class Curl {
+    /**
+     * GET request with cURL.
+     * 
+     * @param string $url
+     * @param array  $headers
+     * 
+     * @return array JSON response with httpCode, success (true/false) and data or error.
+     */
+    public static function get(string $url, array $headers = null) {
+        return self::http_request($url, $headers);
     }
 
-    public static function post(string $url, array $headers = null, string $payload = null)
-    {
-        return self::httpRequest($url, $headers, $payload);
+    /**
+     * POST request with cURL.
+     * 
+     * @param string $url
+     * @param array  $headers
+     * @param string $payload
+     * 
+     * @return array JSON response with httpCode, success (true/false) and data or error.
+     */
+    public static function post(string $url, array $headers = null, string $payload = null) {
+        return self::http_request($url, $headers, $payload);
     }
 
-    private static function httpRequest(string $url, array $headers = null, string $payload = null)
-    {
-        $curlHandle = curl_init();
-        curl_setopt($curlHandle, CURLOPT_URL, $url);
+    /**
+     * Starts a new curl session and handles the request.
+     * 
+     * @param string $url
+     * @param array  $headers
+     * @param string $payload
+     * 
+     * @return array JSON response with httpCode, success (true/false) and data or error.
+     */
+    private static function http_request(string $url, array $headers = null, string $payload = null) {
+        $curl_handle = curl_init();
+        curl_setopt($curl_handle, CURLOPT_URL, $url);
 
-        if ($headers) curl_setopt($curlHandle, CURLOPT_HTTPHEADER, $headers);
+        if ($headers) curl_setopt($curl_handle, CURLOPT_HTTPHEADER, $headers);
 
         if ($payload) {
-            curl_setopt($curlHandle, CURLOPT_POST, 1);
-            curl_setopt($curlHandle, CURLOPT_POSTFIELDS, $payload);
+            curl_setopt($curl_handle, CURLOPT_POST, 1);
+            curl_setopt($curl_handle, CURLOPT_POSTFIELDS, $payload);
         }
-        curl_setopt($curlHandle, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, true);
 
-        $curlResponse = curl_exec($curlHandle);
-        $httpCode = curl_getinfo($curlHandle, CURLINFO_HTTP_CODE);
+        $curl_response = curl_exec($curl_handle);
+        $http_code = curl_getinfo($curl_handle, CURLINFO_HTTP_CODE);
 
-        $finalResponse = [];
         $message = '';
-        $errorCode = 0;
+        $error_code = 0;
 
-        if (curl_errno($curlHandle)) {
-            $message = curl_error($curlHandle);
+        if (curl_errno($curl_handle)) {
+            $message = curl_error($curl_handle);
         } else {
-            $errorCode = curl_errno($curlHandle);
-            $message = $curlResponse;
+            $error_code = curl_errno($curl_handle);
+            $message = $curl_response;
         }
-        $finalResponse = Json::formatJSONResponse($httpCode < 400, $httpCode, $message, $errorCode);
 
-        return $finalResponse;
+        $final_response = Json::format_json_response(
+            $http_code < 400,
+            $http_code,
+            $message,
+            $error_code
+        );
+
+        return $final_response;
     }
 }

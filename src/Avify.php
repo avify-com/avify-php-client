@@ -6,86 +6,80 @@ namespace App;
 
 use App\Utils\Curl;
 use App\Utils\Crypt;
-use Dotenv\Dotenv;
 use App\Utils\Json;
 
-$dotenv = Dotenv::createImmutable(dirname(__DIR__, 1), '.env');
-$dotenv->load();
-class Avify
-{
-    private $baseURL;
-    private $mode;
-    private $publicKey;
-    private $prodBaseUrl = 'https://api.avify.co';
-    private $sandboxBaseUrl = 'https://sandboxapi.avify.co';
+class Avify {
+    private $api_key;
+    private $base_url;
+    private $mode; // TODO: add accepted modes 'sandbox' | 'production' and validate the given mode.
+    private $public_key;
+    private $prod_base_url = 'https://api.avify.co';
+    private $sandbox_base_url = 'https://sandboxapi.avify.co';
 
-    public function __construct(string $mode, string $version)
-    {
-        $this->baseURL = ($mode == 'sandbox' ? $this->sandboxBaseUrl : $this->prodBaseUrl) . '/api/' . $version;
-        $this->mode = $mode;
-        $this->publicKey = $this->getPaymentsPublicKey();
+    /**
+     * Constructor.
+     * 
+     * @param string $mode    API mode 'sandbox' | 'production'.
+     * @param string $version API version 'v1'.
+     * @param string $api_key Your API key.
+     */
+    public function __construct(string $mode, string $version, string $api_key) {
+        $this->base_url =
+            ($mode === 'sandbox'
+                ? $this->sandbox_base_url
+                : $this->prod_base_url
+            ) . '/api/' . $version;
+        $this->api_key = $api_key;
+        $this->public_key = $this->get_payments_public_key();
     }
 
-    function setBaseURL(string $baseURL)
-    {
-        $this->baseURL = $baseURL;
-    }
-
-    function getBaseURL()
-    {
-        return $this->baseURL;
-    }
-
-    function setMode(string $mode)
-    {
-        $this->mode = $mode;
-    }
-
-    function getMode()
-    {
-        return $this->mode;
-    }
-
-    function setPublicKey(string $publicKey)
-    {
-        $this->publicKey = $publicKey;
-    }
-
-    function getPublicKey()
-    {
-        return $this->publicKey;
-    }
-
-    public function getPaymentsPublicKey()
-    {
-        $headers =  array("api-key: {$_ENV['API_KEY']}");
-        $url = "{$this->baseURL}/integrations/payments/key";
+    /**
+     * Returns the payments public key.
+     * 
+     * @return string Public key or an empty string if the key was not found.
+     */
+    public function get_payments_public_key() {
+        $headers =  ["api-key: {$this->api_key}"];
+        $url = "{$this->base_url}/integrations/payments/key";
         $response = Curl::get($url, $headers);
         $data = $response['data'];
         $key = $data && array_key_exists('key', $data) ? $data['key'] : '';
         return $key;
     }
 
-    public function checkout(array $card)
-    {
+    /**
+     * Process the payment for an order and provide a result.
+     * 
+     * @param array  $payment_data Payment values.
+     * @param int    $store_id     ID of the store where the order was created.
+     * 
+     * @return array JSON response with httpCode, success (true/false) and data or error.
+     */
+    public function process_payment(array $payment_data, int $store_id) {
         try {
-            $randomPassphrase = base64_encode(openssl_random_pseudo_bytes(16));
-            $encryptedCard = Crypt::encrypt(json_encode($card), $randomPassphrase);
+            $random_passphrase = base64_encode(openssl_random_pseudo_bytes(16));
+            $encrypted_payment_data = Crypt::encrypt_aes_256_gcm(
+                json_encode($payment_data),
+                $random_passphrase
+            );
+            $encrypted_key = Crypt::encrypt_aes_256_ctr(
+                $random_passphrase,
+                $this->public_key
+            );
 
-            $headers =  array("api-key: {$_ENV['API_KEY']}", 'Content-Type: application/json');
-            $url = "{$this->baseURL}/integrations/payments/checkout";
+            $headers =  ["api-key: {$this->api_key}", 'Content-Type: application/json'];
+            $url = "{$this->base_url}/integrations/payments/checkout";
 
-            $encryptedKey = Crypt::encryptWithPublicKey($randomPassphrase, $this->getPublicKey());
             $json = json_encode(array(
-                'storeId' => 25, // TODO: remove this raw ID.
-                'data' => $encryptedCard,
-                'key' => $encryptedKey
+                'storeId' => $store_id,
+                'data' => $encrypted_payment_data,
+                'key' => $encrypted_key
             ));
 
             $response = Curl::post($url, $headers, $json);
             return $response;
         } catch (\Throwable $th) {
-            return Json::formatJSONResponse(false, 400, $th->getMessage(), $th->getCode());
+            return Json::format_json_response(false, 500, $th->getMessage(), $th->getCode());
         }
     }
 }
