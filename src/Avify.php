@@ -76,20 +76,20 @@ class Avify {
      */
     private function get_error_message_from_code(string $error_code, string $developer_message = '') {
         $error_messages = array(
-            'AP-019' => array(
+            'AP-0' => array(
                 'es' => 'La versión o el modo de la API es incorrecto',
                 'en' => 'The API version or mode is incorrect'
             ),
-            'AP-020' => array(
+            'AP-1' => array(
                 'es' => 'La cantidad a pagar debe tener dos decimales',
                 'en' => 'The amount to pay must have two decimals'
             ),
-            'G-000' => array(
+            'G-0' => array(
                 'es' => 'Parece que algo salió mal',
                 'en' => 'Something went wrong'
             )
         );
-        $default_error_code = 'G-000';
+        $default_error_code = 'G-0';
         $error_message = $error_messages[$default_error_code][$this->locale];
 
         if (array_key_exists($error_code, $error_messages) && $error_code !== $default_error_code) {
@@ -123,10 +123,10 @@ class Avify {
     public function process_payment(array $payment_data, int $store_id) {
         try {
             if ($this->base_url === '') {
-                return $this->get_error_message_from_code('AP-019');
+                return $this->get_error_message_from_code('AP-0');
             }
             if (array_key_exists('amount', $payment_data) && !is_float($payment_data['amount'])) {
-                return $this->get_error_message_from_code('AP-020');
+                return $this->get_error_message_from_code('AP-1');
             }
             $random_passphrase = base64_encode(openssl_random_pseudo_bytes(16));
             $encrypted_payment_data = Crypt::encrypt_aes_256_gcm(
@@ -150,7 +150,7 @@ class Avify {
             $response = Curl::post($url, $headers, $json);
             return $response;
         } catch (\Throwable $th) {
-            return $this->get_error_message_from_code('G-000', $th->getMessage());
+            return $this->get_error_message_from_code('G-0', $th->getMessage());
         }
     }
 }
