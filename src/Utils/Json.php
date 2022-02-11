@@ -23,15 +23,18 @@ class Json {
      * @param bool   $success
      * @param int    $http_code
      * @param string $message
-     * @param int    $error_code
+     * @param string $error_code
      * 
      * @return array JSON response with httpCode, success (true/false) and data or error.
      */
-    public static function format_json_response(bool $success, int $http_code, string $message, int $error_code = 0) {
-        $response = [
-            'success' => $success,
-            'httpCode' => $http_code
-        ];
+    public static function format_json_response(
+        bool $success,
+        int $http_code,
+        string $message,
+        string $error_code = '',
+        string $developerMessage = ''
+    ) {
+        $response = array('success' => $success, 'httpCode' => $http_code);
 
         if ($success) {
             if (self::is_json($message)) {
@@ -43,10 +46,10 @@ class Json {
             if (self::is_json($message)) {
                 $response = array_merge($response, json_decode($message, true));
             } else {
-                $response['error'] = [
-                    'displayMessage' => $message,
-                    'code' => $error_code,
-                ];
+                $response['error'] = array('displayMessage' => $message, 'code' => $error_code);
+                if (!empty($developerMessage)) {
+                    $response['error']['developerMessage'] = $developerMessage;
+                }
             }
         }
         return $response;
