@@ -1,10 +1,28 @@
 # Avify PHP Client Library
 
-## Installation
+## Requirements
+PHP 5.6.0 and later.
 
-TODO
+## Composer
+
+You can install the bindings via [Composer](https://getcomposer.org/). Run the following command:
+
+``` bash
+$ composer require avify/avify-php-client
+```
+
+To use the bindings, use Composer's autoload:
+
+```php 
+require __DIR__ . '/vendor/autoload.php';
+```
 
 ## Usage
+The Avify PHP Client constructor accepts the following parameters:
+
+- **mode:** `'sandbox'` or `'production'`.
+- **version:** `'v1'`.
+- **api_key**: The API key provided by Avify.
 
 ```php
 use App\Avify;
@@ -16,7 +34,7 @@ $avify = new Avify(
 );
 
 $paymentData = [
-    "amount" => 500,
+    "amount" => 500.00, // It must be a float value with a maximum of 2 decimal.
     "currency" => "USD",
     "description" => "Description",
     "orderReference" => "ref-123",
@@ -64,7 +82,24 @@ $storeId = 25;
 $checkout = $avify->process_payment($paymentData, $storeId);
 ```
 
+
+## Internationalization
+If you want to set a custom locale and show messages in a specific language, you can do so using the `set_locale` method:
+
+```php
+// Language and country
+$avify->set_locale('es_CR');
+
+// Or you can directly specify the language
+$avify->set_locale('es');
+
+```
+
+### Available languages
+At the moment we only support Spanish ('es') and English ('en').
+
+**Note:** API's locale is English by default.
+
 ## TODO
 
-- Add testing
 - Improve README.
