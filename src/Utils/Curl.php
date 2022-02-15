@@ -57,7 +57,7 @@ class Curl {
         $http_code = curl_getinfo($curl_handle, CURLINFO_HTTP_CODE);
 
         $message = '';
-        $error_code = 0;
+        $error_code = '';
 
         if (curl_errno($curl_handle)) {
             $message = curl_error($curl_handle);
@@ -70,7 +70,7 @@ class Curl {
             $http_code < 400,
             $http_code,
             $message,
-            $error_code
+            strval($error_code)
         );
 
         return $final_response;
