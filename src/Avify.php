@@ -116,11 +116,11 @@ class Avify {
      * Process the payment for an order and provide a result.
      * 
      * @param array  $payment_data Payment values.
-     * @param int    $store_id     ID of the store where the order was created.
+     * @param string $store_uuid   UUID of the store where the order was created.
      * 
      * @return array JSON response with httpCode, success (true/false) and data or error.
      */
-    public function process_payment(array $payment_data, int $store_id) {
+    public function process_payment(array $payment_data, string $store_uuid) {
         try {
             if ($this->base_url === '') {
                 return $this->get_error_message_from_code('AP-0');
@@ -142,7 +142,7 @@ class Avify {
             $url = "{$this->base_url}/integrations/payments/checkout";
 
             $json = json_encode(array(
-                'storeId' => $store_id,
+                'storeId' => $store_uuid,
                 'data' => $encrypted_payment_data,
                 'key' => $encrypted_key
             ));
