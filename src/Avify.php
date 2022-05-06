@@ -59,10 +59,17 @@ class Avify {
      */
     public function set_locale(string $locale) {
         $available_locales = array('en', 'es');
-        $locale_primary_language = locale_get_primary_language($locale);
+        $default_locale = 'es';
 
-        if (isset($locale_primary_language) && in_array($locale_primary_language, $available_locales)) {
-            $this->locale = $locale_primary_language;
+        if (function_exists('locale_get_primary_language')) {
+            $locale_language = locale_get_primary_language($locale);
+            if (isset($locale_language) && in_array($locale_language, $available_locales)) {
+                $this->locale = $locale_language;
+            } else {
+                $this->locale = $default_locale;
+            }
+        } else {
+            $this->locale = $default_locale;
         }
     }
 
